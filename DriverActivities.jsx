@@ -112,17 +112,16 @@ const DriverActivities = ({
   const DRIVER_STATE_KEYS = Object.keys(DRIVER_STATES);
 
   const yCategories = useMemo(() => {
-    return (activityData?.days || []).map((day, index) => {
-      // If dayOfTheWeek is already a day name string, use it
-      if (typeof day.dayOfTheWeek === 'string' && isNaN(day.dayOfTheWeek) && day.dayOfTheWeek.length > 2) {
-        return day.dayOfTheWeek;
-      }
-      
-      // Otherwise, calculate the day name from the date range
-      const dayDate = dateRange[0]?.add(index, 'day');
-      return dayDate?.format('dddd') || `Day ${index + 1}`;
+    if (!activityData?.days?.length || !dateRange[0]) {
+      return [];
+    }
+    
+    return (activityData.days || []).map((day, index) => {
+      // Always calculate the day name from the selected date range
+      const dayDate = dateRange[0].add(index, 'day');
+      return dayDate.format('dddd'); // Full day name (Monday, Tuesday, etc.)
     });
-  }, [activityData, dateRange]);
+  }, [activityData?.days, dateRange]);
 
   const chartSeries = useMemo(() => {
     return DRIVER_STATE_KEYS.map((stateKey) => ({
@@ -175,7 +174,13 @@ const DriverActivities = ({
       yaxis: {
         categories: yCategories,
         title: { text: "Day" },
-        labels: { style: { fontWeight: 600 } },
+        labels: { 
+          style: { fontWeight: 600 },
+          formatter: function(val, index) {
+            // Ensure we return the day name from yCategories
+            return yCategories[index] || val;
+          }
+        },
       },
       colors: DRIVER_STATE_KEYS.map((k) => DRIVER_STATES[k].color),
       tooltip: {
@@ -367,7 +372,7 @@ const DriverActivities = ({
           <div style={{ flex: 1, minWidth: 700 }}>
             {activityData?.days?.length ? (
               <ReactApexChart
-                key={activityData.days.map((d) => d.dayOfTheWeek).join("-")}
+                key={`${dateRange[0]?.format('YYYY-MM-DD')}-${dateRange[1]?.format('YYYY-MM-DD')}-${yCategories.join('-')}`}
                 options={chartOptions}
                 series={chartSeries}
                 type="bar"
