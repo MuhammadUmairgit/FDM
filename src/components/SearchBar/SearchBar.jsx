@@ -1,19 +1,25 @@
 import React from 'react';
-import './SearchBar.css';
-import { useTheme } from '@mui/material';
+import { Input, theme } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
+
+const { useToken } = theme;
 
 const SearchBar = ({ searchQuery, setSearchQuery }) => {
-  const theme = useTheme();
+  const { token } = useToken();
   
   return (
-    <div className={`search-container ${theme.palette.mode}`}>
-      <i className="fas fa-search search-icon"></i>
-      <input
-        type="text"
+    <div style={{ width: '100%', maxWidth: 400 }}>
+      <Input
         placeholder="Search Items"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        className={`search-input ${theme.palette.mode}`}
+        prefix={<SearchOutlined style={{ color: token.colorTextSecondary }} />}
+        size="large"
+        style={{
+          borderRadius: token.borderRadius,
+          fontSize: token.fontSize,
+        }}
+        allowClear
       />
     </div>
   );

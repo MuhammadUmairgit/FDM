@@ -1,16 +1,11 @@
 import React, { useEffect, useState, Suspense, lazy } from "react";
 import { Routes, Route, Navigate, BrowserRouter } from "react-router-dom";
-import {
-  ThemeProvider as MuiThemeProvider,
-  createTheme,
-} from "@mui/material/styles";
+import { ConfigProvider, theme as antdTheme, Spin, Space } from "antd";
 import { I18nextProvider } from "react-i18next";
-import CssBaseline from "@mui/material/CssBaseline";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Box, CircularProgress } from "@mui/material";
-import { SnackbarProvider } from "notistack";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import dayjs from 'dayjs';
 
 // Context Providers
 import app from "./firebase/firebaseConfig";
@@ -52,6 +47,7 @@ const InventoryProIconCard = lazy(() =>
   import("./components/InventoryProIconCard/InventoryProIconCard")
 );
 const KhataBook = lazy(() => import("./components/KhataBook/KhataBook"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -61,47 +57,32 @@ const queryClient = new QueryClient({
   },
 });
 
-// Theme Configuration
-const createAppTheme = (themeMode) => {
-  return createTheme({
-    palette: {
-      mode: themeMode,
-      primary: {
-        main: "#6E45E2",
-      },
-      secondary: {
-        main: "#88D3CE",
-      },
-      background: {
-        default: themeMode === "dark" ? "#121212" : "#f5f5f5",
-        paper: themeMode === "dark" ? "#1e1e1e" : "#ffffff",
-      },
-    },
-    typography: {
+// Theme Configuration for Ant Design
+const createAntdTheme = (themeMode) => {
+  return {
+    algorithm: themeMode === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+    token: {
+      colorPrimary: "#6E45E2",
+      colorSuccess: "#88D3CE", 
       fontFamily: "'Inter', sans-serif",
-      button: {
-        textTransform: "none",
-        fontWeight: 600,
-      },
+      borderRadius: 8,
+      wireframe: false,
     },
     components: {
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            borderRadius: 8,
-            padding: "8px 16px",
-          },
-        },
+      Button: {
+        paddingInline: 16,
+        paddingBlock: 8,
+        borderRadius: 8,
       },
-      MuiCard: {
-        styleOverrides: {
-          root: {
-            borderRadius: 12,
-          },
-        },
+      Card: {
+        borderRadius: 12,
+      },
+      Layout: {
+        colorBgContainer: themeMode === "dark" ? "#1e1e1e" : "#ffffff",
+        colorBgBody: themeMode === "dark" ? "#121212" : "#f5f5f5",
       },
     },
-  });
+  };
 };
 
 // Layout Components
@@ -136,8 +117,8 @@ const AuthWrapper = ({ children }) => (
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Box
-        sx={{
+      <div
+        style={{
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -146,162 +127,122 @@ const AuthWrapper = ({ children }) => (
         }}
       >
         {children}
-      </Box>
+      </div>
     </motion.div>
   </AnimatePresence>
 );
 
-// Route Configuration
-const routes = [
-  { path: "/", element: <HomeScreen />, protected: true },
-  { path: "/pro-icon", element: <InventoryProIconCard />, protected: true },
-  { path: "/orders", element: <OrderScreen />, protected: true },
-  { path: "/profile", element: <ProfileScreen />, protected: true },
-  { path: "/item/:id", element: <ItemDetailScreen />, protected: true },
-  { path: "/dashboard", element: <DashboardScreen />, protected: true },
-  { path: "/customers", element: <ContactsScreen />, protected: true },
-  { path: "/analytics", element: <AnalyticsScreen />, protected: true },
-  { path: "/settings", element: <SettingsScreen />, protected: true },
-  {
-    path: "/settings/appearance",
-    element: <AppearanceSettings />,
-    protected: true,
-  },
-  {
-    path: "/settings/language",
-    element: <LanguageSettings />,
-    protected: true,
-  },
-  {
-    path: "/settings/security",
-    element: <SecuritySettings />,
-    protected: true,
-  },
-  { path: "/settings/backup", element: <BackupSettings />, protected: true },
-  { path: "/khata", element: <KhataBook />, protected: true },
-  { path: "/auth", element: <AuthPage />, protected: false },
-];
-
 const AppThemeWrapper = ({ children }) => {
   const { themeMode } = useTheme();
-  const theme = React.useMemo(() => createAppTheme(themeMode), [themeMode]);
-
-  return <MuiThemeProvider theme={theme}>{children}</MuiThemeProvider>;
+  return (
+    <ConfigProvider theme={createAntdTheme(themeMode)}>
+      {children}
+    </ConfigProvider>
+  );
 };
 
 const AppContent = () => {
   const [user, setUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const auth = getAuth(app);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setAuthChecked(true);
+    const auth = getAuth(app);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setLoading(false);
     });
-    return unsubscribe;
-  }, [auth]);
 
-  if (!authChecked) {
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
     return (
-      <Suspense
-        fallback={
-          <Box
-            sx={{
-              height: "100vh",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <CircularProgress />
-          </Box>
-        }
-      />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <Space direction="vertical" align="center">
+          <Spin size="large" />
+        </Space>
+      </div>
     );
   }
 
+  const routes = [
+    { path: "/", element: <HomeScreen />, protected: true },
+    { path: "/dashboard", element: <DashboardScreen />, protected: true },
+    { path: "/item/:id", element: <ItemDetailScreen />, protected: true },
+    { path: "/profile", element: <ProfileScreen />, protected: true },
+    { path: "/orders", element: <OrderScreen />, protected: true },
+    { path: "/contacts", element: <ContactsScreen />, protected: true },
+    { path: "/analytics", element: <AnalyticsScreen />, protected: true },
+    { path: "/settings", element: <SettingsScreen />, protected: true },
+    { path: "/settings/backup", element: <BackupSettings />, protected: true },
+    { path: "/settings/security", element: <SecuritySettings />, protected: true },
+    { path: "/settings/appearance", element: <AppearanceSettings />, protected: true },
+    { path: "/settings/language", element: <LanguageSettings />, protected: true },
+    { path: "/inventory-pro", element: <InventoryProIconCard />, protected: true },
+    { path: "/khata", element: <KhataBook />, protected: true },
+    { path: "/auth", element: <AuthPage />, protected: false },
+  ];
+
   const renderRoute = (route) => {
     if (route.protected) {
-      return (
-        <Route
-          key={route.path}
-          path={route.path}
-          element={
-            user ? (
-              <ProtectedLayout>
-                <Suspense fallback={<CircularProgress />}>
-                  {route.element}
-                </Suspense>
-              </ProtectedLayout>
-            ) : (
-              <Navigate to="/auth" />
-            )
-          }
-        />
+      return user ? (
+        <ProtectedLayout>
+          <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}><Spin size="large" /></div>}>
+            {route.element}
+          </Suspense>
+        </ProtectedLayout>
+      ) : (
+        <Navigate to="/auth" replace />
+      );
+    } else {
+      return user ? (
+        <Navigate to="/" replace />
+      ) : (
+        <AuthWrapper>
+          <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}><Spin size="large" /></div>}>
+            {route.element}
+          </Suspense>
+        </AuthWrapper>
       );
     }
-    return (
-      <Route
-        key={route.path}
-        path={route.path}
-        element={
-          user ? (
-            <Navigate to="/" />
-          ) : (
-            <AuthWrapper>
-              <Suspense fallback={<CircularProgress />}>
-                {route.element}
-              </Suspense>
-            </AuthWrapper>
-          )
-        }
-      />
-    );
   };
 
   return (
-    <>
-      <CssBaseline />
-      <SnackbarProvider
-        maxSnack={3}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        autoHideDuration={3000}
-      >
-        <ItemProvider>
-          <Routes>
-            {routes.map(renderRoute)}
-            <Route path="*" element={<Navigate to={user ? "/" : "/auth"} />} />
-          </Routes>
-        </ItemProvider>
-      </SnackbarProvider>
-    </>
+    <Routes>
+      {routes.map((route, index) => (
+        <Route key={index} path={route.path} element={renderRoute(route)} />
+      ))}
+    </Routes>
   );
 };
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          {" "}
-          {/* ✅ AuthProvider must come first */}
-          <InventoryProvider>
-            <I18nextProvider i18n={i18n}>
-              <ContactsProvider>
-                {/* <StorageProvider> */}
-                <ThemeProvider>
-                  <AppThemeWrapper>
-                    <AppContent />
-                  </AppThemeWrapper>
-                </ThemeProvider>
-                {/* </StorageProvider> */}
-                {/* <ReactQueryDevtools initialIsOpen={false} /> */}
-              </ContactsProvider>
-            </I18nextProvider>
-          </InventoryProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      <ThemeProvider>
+        <AppThemeWrapper>
+          <I18nextProvider i18n={i18n}>
+            <AuthProvider>
+              <ItemProvider>
+                <InventoryProvider>
+                  <ContactsProvider>
+                    <BrowserRouter>
+                      <AppContent />
+                    </BrowserRouter>
+                  </ContactsProvider>
+                </InventoryProvider>
+              </ItemProvider>
+            </AuthProvider>
+          </I18nextProvider>
+        </AppThemeWrapper>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
