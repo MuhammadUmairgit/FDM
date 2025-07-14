@@ -3,46 +3,37 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
 import {
-  Fab,
-  IconButton,
-  Box,
-  Typography,
-  CircularProgress,
-  useTheme,
-  useMediaQuery,
-  Zoom,
-  Fade,
-  Tabs,
-  Tab,
-  Avatar,
-  Grid,
+  FloatButton,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TableContainer,
+  Typography,
+  Spin,
+  Tabs,
+  Avatar,
+  Row,
+  Col,
+  Modal,
   Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Snackbar,
-  Alert,
-  TextField,
+  Input,
   Card,
-  CardContent,
-  Paper,
-} from "@mui/material";
+  Space,
+  Upload,
+  message,
+  Divider,
+  theme,
+  Badge,
+  Tooltip,
+  Tag,
+} from "antd";
 import {
-  Add as AddIcon,
-  ShowChart as ShowChartIcon,
-  Publish as UploadIcon,
-  Edit as EditIcon,
-  Storage as StorageIcon,
-  Contacts as ContactsIcon,
-  Analytics as AnalyticsIcon,
-} from "@mui/icons-material";
+  PlusOutlined,
+  BarChartOutlined,
+  UploadOutlined,
+  EditOutlined,
+  DatabaseOutlined,
+  ContactsOutlined,
+  AreaChartOutlined,
+  FileExcelOutlined,
+} from "@ant-design/icons";
 import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
@@ -60,9 +51,12 @@ import { BulkEditTableSkeleton, LoadingSkeleton } from "./LoadingSkeleton";
 import SearchBar from "../SearchBar/SearchBar";
 import { QuickAccessCards } from "./QuickAccessCards";
 
+const { Title, Text } = Typography;
+const { TabPane } = Tabs;
+const { useToken } = theme;
+
 const HomeScreen = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const { token } = useToken();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { currentUser, loading: authLoading } = useAuth();
@@ -79,17 +73,13 @@ const HomeScreen = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState("1");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [bulkEditModalOpen, setBulkEditModalOpen] = useState(false);
   const [editableItems, setEditableItems] = useState([]);
   const [excelData, setExcelData] = useState([]);
   const [file, setFile] = useState(null);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [messageApi, contextHolder] = message.useMessage();
   const [isBulkEditLoading, setIsBulkEditLoading] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [orderItems, setOrderItems] = useState([]);
@@ -317,8 +307,8 @@ const HomeScreen = () => {
     setBulkEditModalOpen(false);
   };
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
+  const showMessage = (content, type = 'success') => {
+    messageApi[type](content);
   };
 
   useEffect(() => {
@@ -377,14 +367,16 @@ const HomeScreen = () => {
 
   if (authLoading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
       >
-        <CircularProgress />
-      </Box>
+        <Spin size="large" />
+      </div>
     );
   }
 

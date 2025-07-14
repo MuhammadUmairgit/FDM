@@ -1,322 +1,204 @@
 import React from "react";
 import {
   Card,
-  CardMedia,
   Typography,
-  Box,
-  Skeleton,
-  Chip,
-  useTheme,
-  Fade,
-  Grow,
-  styled,
+  Space,
+  Tag,
+  theme,
   Tooltip,
-} from "@mui/material";
+} from "antd";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
-const StyledCard = styled(Card)(({ theme }) => ({
-  position: "relative",
-  marginBottom: theme.spacing(2),
-  borderRadius: "16px",
-  boxShadow: "0 8px 16px rgba(0,0,0,0.05)",
-  transition: "all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)",
-  cursor: "pointer",
-  overflow: "hidden",
-  "&:hover": {
-    transform: "translateY(-4px)",
-    boxShadow: "0 12px 24px rgba(0,0,0,0.15)",
-    "& .title-text": {
-      color: theme.palette.primary.main,
-    },
-  },
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: "4px",
-    background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-    borderTopLeftRadius: "16px",
-    borderTopRightRadius: "16px",
-    opacity: 0.8,
-  },
-}));
-
-const GlowBox = styled(Box)(({ theme }) => ({
-  position: "absolute",
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  borderRadius: "16px",
-  boxShadow: `0 0 20px 5px ${theme.palette.primary.light}`,
-  opacity: 0,
-  transition: "opacity 0.3s ease",
-  pointerEvents: "none",
-  "&.active": {
-    opacity: 0.4,
-  },
-}));
+const { Text, Title } = Typography;
+const { useToken } = theme;
 
 const ItemCard = ({ item }) => {
-  const theme = useTheme();
   const navigate = useNavigate();
-  const [imageLoaded, setImageLoaded] = React.useState(false);
-  const [isHovered, setIsHovered] = React.useState(false);
+  const { token } = useToken();
 
   const handlePress = () => {
-    navigate(`/item/${item.id}`, {
-      state: { item }, // Only pass serializable data
-    });
+    navigate(`/item/${item.id}`);
   };
 
-  return (
-    <Box sx={{ position: "relative", overflow: "visible" }}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        whileHover={{ scale: 1.02 }}
-        style={{
-          position: "relative",
-          overflow: "visible",
-          zIndex: isHovered ? 2 : 1,
+  if (!item) {
+    return (
+      <Card 
+        loading 
+        style={{ 
+          marginBottom: token.margin,
+          borderRadius: token.borderRadiusLG,
         }}
+      />
+    );
+  }
+
+  const imageUrl = item.images?.[0] || item.imageUrl || "/api/placeholder/300/200";
+  const isLowStock = item.quantity <= (item.lowStockThreshold || 10);
+  const isOutOfStock = item.quantity === 0;
+
+  return (
+    <motion.div
+      whileHover={{ 
+        y: -4,
+        boxShadow: "0 12px 24px rgba(0,0,0,0.15)",
+      }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card
+        hoverable
+        cover={
+          <div style={{ 
+            height: 200, 
+            overflow: 'hidden',
+            position: 'relative',
+          }}>
+            <img
+              alt={item.title || item.name}
+              src={imageUrl}
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                objectFit: 'cover',
+                transition: 'transform 0.3s ease',
+              }}
+              onError={(e) => {
+                e.target.src = "/api/placeholder/300/200";
+              }}
+            />
+            {/* Gradient overlay */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: `linear-gradient(90deg, ${token.colorPrimary}, ${token.colorSuccess})`,
+                opacity: 0.8,
+              }}
+            />
+            {/* Stock status badges */}
+            {(isOutOfStock || isLowStock) && (
+              <div style={{ position: 'absolute', top: 8, right: 8 }}>
+                <Tag color={isOutOfStock ? 'red' : 'orange'}>
+                  {isOutOfStock ? 'Out of Stock' : 'Low Stock'}
+                </Tag>
+              </div>
+            )}
+          </div>
+        }
+        style={{
+          marginBottom: token.margin,
+          borderRadius: token.borderRadiusLG,
+          overflow: 'hidden',
+          cursor: 'pointer',
+          transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
+        }}
+        onClick={handlePress}
+        bodyStyle={{ padding: token.paddingMD }}
       >
-        <StyledCard
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          onClick={handlePress}
-        >
-          <GlowBox className={isHovered ? "active" : ""} />
-
-          <Box sx={{ display: "flex", p: 3, position: "relative", zIndex: 1 }}>
-            {/* Image Section */}
-            <Box
-              sx={{
-                mr: 2,
-                position: "relative",
-                minWidth: 100,
-                flexShrink: 0,
+        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          {/* Title */}
+          <Tooltip title={item.title || item.name}>
+            <Title 
+              level={5} 
+              ellipsis 
+              style={{ 
+                margin: 0,
+                transition: 'color 0.3s ease',
               }}
+              className="title-text"
             >
-              {item.image?.uri ? (
-                <>
-                  {!imageLoaded && (
-                    <Skeleton
-                      variant="rectangular"
-                      width={100}
-                      height={100}
-                      sx={{
-                        borderRadius: "12px",
-                        bgcolor:
-                          theme.palette.mode === "dark"
-                            ? "grey.800"
-                            : "grey.200",
-                      }}
-                    />
-                  )}
-                  <Fade in={imageLoaded} timeout={500}>
-                    <CardMedia
-                      component="img"
-                      image={item.image.uri}
-                      alt={item.name}
-                      sx={{
-                        width: 100,
-                        height: 100,
-                        borderRadius: "12px",
-                        objectFit: "cover",
-                        boxShadow: theme.shadows[2],
-                        border: `1px solid ${theme.palette.divider}`,
-                      }}
-                      onLoad={() => setImageLoaded(true)}
-                    />
-                  </Fade>
-                </>
-              ) : (
-                <Grow in timeout={500}>
-                  <Box
-                    sx={{
-                      width: 100,
-                      height: 100,
-                      borderRadius: "12px",
-                      bgcolor:
-                        theme.palette.mode === "dark" ? "grey.800" : "grey.100",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: theme.palette.text.secondary,
-                      boxShadow: theme.shadows[1],
-                      border: `1px dashed ${theme.palette.divider}`,
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ fontSize: "0.7rem" }}>
-                      No Image
-                    </Typography>
-                  </Box>
-                </Grow>
+              {item.title || item.name}
+            </Title>
+          </Tooltip>
+
+          {/* Description */}
+          {item.description && (
+            <Text 
+              type="secondary" 
+              ellipsis={{ rows: 2 }}
+              style={{ fontSize: token.fontSizeSM }}
+            >
+              {item.description}
+            </Text>
+          )}
+
+          {/* Price and Quantity */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginTop: token.marginXS,
+          }}>
+            <div>
+              <Text strong style={{ fontSize: token.fontSizeLG, color: token.colorPrimary }}>
+                ₹{item.price?.toLocaleString() || 0}
+              </Text>
+              {item.cost && (
+                <Text 
+                  type="secondary" 
+                  style={{ 
+                    fontSize: token.fontSizeSM,
+                    marginLeft: token.marginXS,
+                  }}
+                >
+                  Cost: ₹{item.cost}
+                </Text>
               )}
-            </Box>
+            </div>
+            
+            <Space>
+              <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                Qty: {item.quantity || 0}
+              </Text>
+              {item.unit && (
+                <Tag color="blue" style={{ fontSize: token.fontSizeXS }}>
+                  {item.unit}
+                </Tag>
+              )}
+            </Space>
+          </div>
 
-            {/* Details Section */}
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-              }}
-            >
-              {/* Name and Code */}
-              <Box sx={{ mb: 1 }}>
-                <Tooltip
-                  title={item.name || "No Name"}
-                  placement="top"
-                  arrow
-                  enterDelay={500}
-                >
-                  <Typography
-                    variant="h6"
-                    className="title-text"
-                    sx={{
-                      fontWeight: 300,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      color: theme.palette.text.primary,
-                      transition: "color 0.3s ease",
-                    }}
-                  >
-                    {item.name || "No Name"}
-                  </Typography>
-                </Tooltip>
-                <Chip
-                  label={item.code || "N/A"}
-                  size="small"
-                  sx={{
-                    mt: 0.5,
-                    bgcolor: theme.palette.primary.light,
-                    color: theme.palette.primary.contrastText,
-                    fontWeight: 200,
-                    fontSize: "0.7rem",
-                    height: "22px",
-                  }}
-                />
-              </Box>
+          {/* Category */}
+          {item.category && (
+            <div style={{ marginTop: token.marginXS }}>
+              <Tag color="purple" style={{ fontSize: token.fontSizeXS }}>
+                {item.category}
+              </Tag>
+            </div>
+          )}
 
-              {/* Quantity and Price */}
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: 1,
-                  width: "100%",
-                  justifyContent: "space-between",
-                  mt: 1.5,
-                }}
+          {/* Additional Info */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginTop: token.marginXS,
+          }}>
+            {item.barcode && (
+              <Text 
+                type="secondary" 
+                style={{ fontSize: token.fontSizeXS }}
               >
-                <Box
-                  sx={{
-                    flex: "1 1 50%",
-                    p: 1.5,
-                    borderRadius: "10px",
-                    bgcolor:
-                      theme.palette.mode === "dark" ? "grey.800" : "grey.50",
-                    textAlign: "center",
-                    border: `1px solid ${theme.palette.divider}`,
-                    transition: "all 0.3s ease",
-                    minWidth: 0,
-                    "&:hover": {
-                      bgcolor:
-                        theme.palette.mode === "dark" ? "grey.700" : "grey.100",
-                    },
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: 100,
-                      color: theme.palette.text.secondary,
-                      fontSize: "0.75rem",
-                      letterSpacing: "0.5px",
-                      display: "block",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    QTY
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 100,
-                      color: theme.palette.primary.main,
-                      mt: 0.5,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {item.quantity || "0"}
-                  </Typography>
-                </Box>
-
-                <Box
-                  sx={{
-                    flex: "1 1 50%",
-                    p: 1.5,
-                    borderRadius: "10px",
-                    bgcolor:
-                      theme.palette.mode === "dark" ? "grey.800" : "grey.50",
-                    textAlign: "center",
-                    border: `1px solid ${theme.palette.divider}`,
-                    transition: "all 0.3s ease",
-                    minWidth: 0,
-                    "&:hover": {
-                      bgcolor:
-                        theme.palette.mode === "dark" ? "grey.700" : "grey.100",
-                    },
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: 100,
-                      color: theme.palette.text.secondary,
-                      fontSize: "0.75rem",
-                      letterSpacing: "0.5px",
-                      display: "block",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    PRICE
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 100,
-                      color: theme.palette.secondary.main,
-                      mt: 0.5,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {item.price || "0"}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          </Box>
-        </StyledCard>
-      </motion.div>
-    </Box>
+                #{item.barcode}
+              </Text>
+            )}
+            
+            {item.lastUpdated && (
+              <Text 
+                type="secondary" 
+                style={{ fontSize: token.fontSizeXS }}
+              >
+                Updated: {new Date(item.lastUpdated.seconds * 1000).toLocaleDateString()}
+              </Text>
+            )}
+          </div>
+        </Space>
+      </Card>
+    </motion.div>
   );
 };
 
-export default React.memo(ItemCard);
+export default ItemCard;
