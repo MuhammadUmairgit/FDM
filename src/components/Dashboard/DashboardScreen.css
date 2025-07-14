@@ -1,0 +1,114 @@
+.dashboard-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  
+  .section-title {
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .metrics-grid {
+    margin-bottom: 2rem;
+  }
+  
+  .metric-card {
+    height: 100%;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    border-radius: 12px !important;
+  }
+  
+  .metric-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .metric-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .quick-actions-container {
+    margin-bottom: 2rem;
+  }
+  
+  .quick-action-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 12px !important;
+  }
+  
+  .quick-action-card:hover {
+    background-color: #f5f5f5;
+  }
+  
+  .quick-action-card svg {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #6E45E2;
+  }
+  
+  .recent-activities-container {
+    margin-bottom: 2rem;
+  }
+  
+  .activity-card {
+    height: 100%;
+    border-radius: 12px !important;
+  }
+  
+  .activity-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .activity-content svg {
+    font-size: 1.5rem;
+    color: #6E45E2;
+  }
+  
+  .activity-details {
+    flex: 1;
+  }
+  
+  .inventory-summary-container {
+    margin-bottom: 2rem;
+  }
+  
+  .inventory-summary-card {
+    border-radius: 12px !important;
+    padding: 1.5rem;
+  }
+  
+  @media (max-width: 600px) {
+    .dashboard-container {
+      padding: 1rem;
+    }
+    
+    .dashboard-header h1 {
+      font-size: 1.5rem;
+    }
+    
+    .quick-action-card {
+      padding: 1rem;
+    }
+  }

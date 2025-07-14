@@ -1,0 +1,281 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    width: 90%;
+    max-width: 500px;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .modal-content.dark {
+    background-color: #2C2C2C;
+    color: white;
+  }
+  
+  .modal-content.light {
+    background-color: white;
+    color: black;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px;
+  }
+  
+  .dark .close-button {
+    color: white;
+  }
+  
+  .light .close-button {
+    color: black;
+  }
+  
+  .input-container {
+    margin-bottom: 20px;
+  }
+  
+  .input-wrapper {
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+    padding: 0 15px;
+    margin-bottom: 15px;
+    border: 1px solid;
+  }
+  
+  .dark .input-wrapper {
+    background-color: #333;
+    border-color: #444;
+  }
+  
+  .light .input-wrapper {
+    background-color: #f5f5f5;
+    border-color: #ddd;
+  }
+  
+  .input-icon {
+    margin-right: 10px;
+    color: #888;
+  }
+  
+  .input-field {
+    flex: 1;
+    height: 50px;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 16px;
+  }
+  
+  .dark .input-field {
+    color: white;
+  }
+  
+  .light .input-field {
+    color: black;
+  }
+  
+  .input-field::placeholder {
+    color: #888;
+  }
+  
+  .row-inputs {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .quantity-input,
+  .price-input {
+    flex: 1;
+  }
+  
+  .dropdown-container {
+    margin-bottom: 15px;
+    position: relative;
+    z-index: 100;
+  }
+  
+  .dropdown-header {
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+    padding: 0 15px;
+    height: 50px;
+    cursor: pointer;
+  }
+  
+  .dropdown-header.focused {
+    border-color: #6E45E2;
+  }
+  
+  .dropdown-selected {
+    flex: 1;
+  }
+  
+  .dropdown-content {
+    position: absolute;
+    width: 100%;
+    max-height: 200px;
+    border-radius: 10px;
+    margin-top: 5px;
+    overflow: hidden;
+  }
+  
+  .dark .dropdown-content {
+    background-color: #333;
+    border: 1px solid #444;
+  }
+  
+  .light .dropdown-content {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+  }
+  
+  .add-category-container {
+    display: flex;
+    padding: 10px;
+    border-bottom: 1px solid;
+  }
+  
+  .dark .add-category-container {
+    border-color: #444;
+  }
+  
+  .light .add-category-container {
+    border-color: #ddd;
+  }
+  
+  .add-category-input {
+    flex: 1;
+    height: 40px;
+    border-radius: 8px;
+    padding: 0 10px;
+    border: 1px solid;
+    margin-right: 10px;
+    outline: none;
+  }
+  
+  .dark .add-category-input {
+    background-color: #333;
+    border-color: #444;
+    color: white;
+  }
+  
+  .light .add-category-input {
+    background-color: white;
+    border-color: #ddd;
+    color: black;
+  }
+  
+  .add-category-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background-color: #6E45E2;
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .add-category-button:disabled {
+    background-color: #888;
+    cursor: not-allowed;
+  }
+  
+  .category-list {
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  
+  .category-item {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    border-bottom: 1px solid;
+  }
+  
+  .dark .category-item {
+    border-color: #444;
+  }
+  
+  .light .category-item {
+    border-color: #ddd;
+  }
+  
+  .category-item:hover {
+    background-color: rgba(110, 69, 226, 0.1);
+  }
+  
+  .empty-category {
+    padding: 15px;
+    text-align: center;
+    color: #888;
+  }
+  
+  .add-button {
+    width: 100%;
+    padding: 15px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(to right, #6E45E2, #88D3CE);
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .add-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }

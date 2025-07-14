@@ -1,0 +1,163 @@
+.item-detail-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.item-detail-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.item-detail-title {
+  flex-grow: 1;
+  text-align: center;
+  font-weight: 600;
+}
+
+.header-spacer {
+  width: 48px;
+}
+
+.item-detail-card {
+  padding: 24px;
+  border-radius: 12px;
+}
+
+.item-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.item-code {
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.current-values-container {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.current-value-box {
+  background-color: #f5f5f5;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  flex: 1;
+  margin: 0 8px;
+}
+
+.current-value {
+  font-weight: 600;
+  color: #6E45E2;
+}
+
+.divider {
+  margin: 16px 0;
+}
+
+.category-button {
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+.category-menu {
+  max-height: 400px;
+}
+
+.category-menu-header {
+  padding: 12px;
+}
+
+.add-category-button {
+  margin-top: 8px;
+  background-color: #6E45E2;
+  color: white;
+}
+
+.category-menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+}
+
+.category-name {
+  flex-grow: 1;
+}
+
+.category-check-icon {
+  color: #4CAF50;
+  margin: 0 8px;
+}
+
+.delete-category-button {
+  color: #F44336;
+}
+
+.quantity-input,
+.price-input,
+.safety-stock-input {
+  margin-bottom: 16px;
+}
+
+.input-icon {
+  color: #6E45E2;
+  margin-right: 8px;
+}
+
+.action-buttons-container {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.save-button {
+  background-color: #6E45E2;
+}
+
+.delete-button {
+  background-color: #F44336;
+}
+
+.delete-dialog .MuiDialog-paper {
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.snackbar {
+  bottom: 24px;
+}
+
+.snackbar-alert {
+  border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+  .item-detail-container {
+    padding: 12px;
+  }
+
+  .current-values-container {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .current-value-box {
+    margin: 0;
+  }
+
+  .action-buttons-container {
+    flex-direction: column;
+  }
+}

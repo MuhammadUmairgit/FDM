@@ -1,0 +1,7 @@
+{
+  "name": "Inventory Pro",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react"
+}
