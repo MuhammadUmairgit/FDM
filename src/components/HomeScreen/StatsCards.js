@@ -1,132 +1,128 @@
-import { Card, CardContent, Typography, Box, Grid } from "@mui/material";
-import StorageIcon from "@mui/icons-material/Storage";
+import { Card, Typography, Row, Col, Space, theme } from "antd";
+import { 
+  DatabaseOutlined, 
+  DollarOutlined, 
+  BarChartOutlined 
+} from "@ant-design/icons";
 
-// Add these imports at the top of HomeScreen.js
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
-import TimelineIcon from "@mui/icons-material/Timeline";
+const { Title, Text } = Typography;
+const { useToken } = theme;
 
 export const StatsCards = ({ totalItems, totalValue, categories }) => {
-  return (
-    <Grid container spacing={3}>
-      {/* First Card - Total Items */}
-      <Grid item xs={12} md={3} minWidth={"30%"}>
-        <Card sx={{ borderRadius: 3, boxShadow: 3, height: "100%" }}>
-          <CardContent>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  Total Items
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                  {totalItems}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  bgcolor: "primary.light",
-                  p: 2,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <StorageIcon fontSize="large" />
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
+  const { token } = useToken();
 
-      {/* Second Card - Total Value (larger) */}
-      <Grid item xs={12} md={6} minWidth={"35%"}>
-        <Card sx={{ borderRadius: 3, boxShadow: 3, height: "100%" }}>
-          <CardContent>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  Total Value
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                  ${totalValue.toFixed(2)}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  bgcolor: "success.light",
-                  p: 2,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <AttachMoneyIcon fontSize="large" />
-              </Box>
-            </Box>
-          </CardContent>
+  const cardStyle = {
+    borderRadius: token.borderRadiusLG,
+    height: "100%",
+    border: `1px solid ${token.colorBorderSecondary}`,
+  };
+
+  const iconBoxStyle = {
+    backgroundColor: token.colorPrimaryBg,
+    padding: token.paddingMD,
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 56,
+    height: 56,
+  };
+
+  const successIconBoxStyle = {
+    ...iconBoxStyle,
+    backgroundColor: token.colorSuccessBg,
+  };
+
+  const secondaryIconBoxStyle = {
+    ...iconBoxStyle,
+    backgroundColor: token.colorInfoBg,
+  };
+
+  return (
+    <Row gutter={[24, 24]}>
+      {/* First Card - Total Items */}
+      <Col xs={24} md={8}>
+        <Card style={cardStyle} bodyStyle={{ padding: token.paddingLG }}>
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center" 
+          }}>
+            <Space direction="vertical" size="small">
+              <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                Total Items
+              </Text>
+              <Title level={2} style={{ margin: 0, fontWeight: 700 }}>
+                {totalItems}
+              </Title>
+            </Space>
+            <div style={iconBoxStyle}>
+              <DatabaseOutlined 
+                style={{ 
+                  fontSize: 24, 
+                  color: token.colorPrimary 
+                }} 
+              />
+            </div>
+          </div>
         </Card>
-      </Grid>
+      </Col>
+
+      {/* Second Card - Total Value */}
+      <Col xs={24} md={8}>
+        <Card style={cardStyle} bodyStyle={{ padding: token.paddingLG }}>
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center" 
+          }}>
+            <Space direction="vertical" size="small">
+              <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                Total Value
+              </Text>
+              <Title level={2} style={{ margin: 0, fontWeight: 700 }}>
+                ₹{totalValue?.toFixed(2) || '0.00'}
+              </Title>
+            </Space>
+            <div style={successIconBoxStyle}>
+              <DollarOutlined 
+                style={{ 
+                  fontSize: 24, 
+                  color: token.colorSuccess 
+                }} 
+              />
+            </div>
+          </div>
+        </Card>
+      </Col>
 
       {/* Third Card - Categories */}
-      <Grid item xs={12} md={3} minWidth={"30%"}>
-        <Card sx={{ borderRadius: 3, boxShadow: 3, height: "100%" }}>
-          <CardContent>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  Categories
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                  {categories}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  bgcolor: "secondary.light",
-                  p: 2,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <TimelineIcon fontSize="large" />
-              </Box>
-            </Box>
-          </CardContent>
+      <Col xs={24} md={8}>
+        <Card style={cardStyle} bodyStyle={{ padding: token.paddingLG }}>
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center" 
+          }}>
+            <Space direction="vertical" size="small">
+              <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                Categories
+              </Text>
+              <Title level={2} style={{ margin: 0, fontWeight: 700 }}>
+                {categories}
+              </Title>
+            </Space>
+            <div style={secondaryIconBoxStyle}>
+              <BarChartOutlined 
+                style={{ 
+                  fontSize: 24, 
+                  color: token.colorInfo 
+                }} 
+              />
+            </div>
+          </div>
         </Card>
-      </Grid>
-    </Grid>
+      </Col>
+    </Row>
   );
 };
