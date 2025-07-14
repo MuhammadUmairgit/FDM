@@ -1,46 +1,49 @@
 import React, { useState } from "react";
 import {
-  Box,
+  Layout,
+  Menu,
   Typography,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Paper,
-  Avatar,
-  Grid,
   Card,
-  CardHeader,
-  CardContent,
   Switch,
-  FormControlLabel,
-  TextField,
+  Form,
+  Input,
   Button,
-  useTheme,
-} from "@mui/material";
+  Select,
+  Space,
+  Row,
+  Col,
+  Avatar,
+  Divider,
+  Alert,
+  theme,
+  Spin,
+} from "antd";
 import {
-  Palette,
-  Notifications,
-  Language,
-  Security,
-  AccountCircle,
-  Backup,
-  Info,
-  Lock,
-  Email,
-} from "@mui/icons-material";
+  BgColorsOutlined,
+  BellOutlined,
+  GlobalOutlined,
+  SafetyCertificateOutlined,
+  UserOutlined,
+  CloudUploadOutlined,
+  InfoCircleOutlined,
+  LockOutlined,
+  MailOutlined,
+  SettingOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ThemeSwitcherDropdown from "../../context/ThemeSwitcher";
 
+const { Sider, Content } = Layout;
+const { Title, Text, Paragraph } = Typography;
+const { Option } = Select;
+const { useToken } = theme;
+
 const SettingsScreen = () => {
-  const theme = useTheme();
+  const { token } = useToken();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("appearance");
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [autoBackupEnabled, setAutoBackupEnabled] = useState(false);
-  const [backupFrequency, setBackupFrequency] = useState("weekly");
+  const [form] = Form.useForm();
 
   const { data: userPreferences, isLoading } = useQuery(
     "userPreferences",
@@ -51,280 +54,481 @@ const SettingsScreen = () => {
             language: "en",
             timezone: "UTC",
             emailNotifications: true,
+            pushNotifications: true,
+            autoBackup: false,
+            backupFrequency: "weekly",
+            enableAnimations: true,
+            compactMode: false,
           });
         }, 500);
       });
     }
   );
 
-  const settingsTabs = [
-    { id: "appearance", label: "Appearance", icon: <Palette /> },
-    { id: "notifications", label: "Notifications", icon: <Notifications /> },
-    { id: "language", label: "Language", icon: <Language /> },
-    { id: "security", label: "Security", icon: <Security /> },
-    { id: "account", label: "Account", icon: <AccountCircle /> },
-    { id: "backup", label: "Backup", icon: <Backup /> },
-    { id: "about", label: "About", icon: <Info /> },
+  const menuItems = [
+    {
+      key: "appearance",
+      icon: <BgColorsOutlined />,
+      label: "Appearance",
+    },
+    {
+      key: "notifications",
+      icon: <BellOutlined />,
+      label: "Notifications",
+    },
+    {
+      key: "language",
+      icon: <GlobalOutlined />,
+      label: "Language",
+    },
+    {
+      key: "security",
+      icon: <SafetyCertificateOutlined />,
+      label: "Security",
+    },
+    {
+      key: "account",
+      icon: <UserOutlined />,
+      label: "Account",
+    },
+    {
+      key: "backup",
+      icon: <CloudUploadOutlined />,
+      label: "Backup",
+    },
+    {
+      key: "about",
+      icon: <InfoCircleOutlined />,
+      label: "About",
+    },
   ];
+
+  const getCurrentTabTitle = () => {
+    return menuItems.find((item) => item.key === activeTab)?.label || "Settings";
+  };
+
+  const renderAppearanceSettings = () => (
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+      <Card title="Theme Preferences" bordered={false}>
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} md={12}>
+            <div>
+              <Text strong>Current Theme</Text>
+              <br />
+              <Text type="secondary">Customize the look and feel of the application</Text>
+            </div>
+          </Col>
+          <Col xs={24} md={12} style={{ textAlign: "right" }}>
+            <ThemeSwitcherDropdown />
+          </Col>
+        </Row>
+      </Card>
+
+      <Card title="Advanced Appearance Settings" bordered={false}>
+        <Form layout="vertical" initialValues={userPreferences}>
+          <Form.Item name="enableAnimations" valuePropName="checked">
+            <Space>
+              <Switch />
+              <Text>Enable animations</Text>
+            </Space>
+          </Form.Item>
+          
+          <Form.Item name="compactMode" valuePropName="checked">
+            <Space>
+              <Switch />
+              <Text>Compact mode</Text>
+            </Space>
+          </Form.Item>
+          
+          <Form.Item name="highContrast" valuePropName="checked">
+            <Space>
+              <Switch />
+              <Text>High contrast mode</Text>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Card>
+    </Space>
+  );
+
+  const renderNotificationSettings = () => (
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+      <Card title="Notification Preferences" bordered={false}>
+        <Form layout="vertical" initialValues={userPreferences}>
+          <Form.Item name="emailNotifications" valuePropName="checked">
+            <Space>
+              <Switch />
+              <div>
+                <Text strong>Email Notifications</Text>
+                <br />
+                <Text type="secondary">Receive updates via email</Text>
+              </div>
+            </Space>
+          </Form.Item>
+          
+          <Form.Item name="pushNotifications" valuePropName="checked">
+            <Space>
+              <Switch />
+              <div>
+                <Text strong>Push Notifications</Text>
+                <br />
+                <Text type="secondary">Browser push notifications</Text>
+              </div>
+            </Space>
+          </Form.Item>
+          
+          <Form.Item name="inventoryAlerts" valuePropName="checked">
+            <Space>
+              <Switch />
+              <div>
+                <Text strong>Inventory Alerts</Text>
+                <br />
+                <Text type="secondary">Low stock and expiry warnings</Text>
+              </div>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Card>
+
+      <Card title="Notification Frequency" bordered={false}>
+        <Form.Item label="Email Digest Frequency">
+          <Select defaultValue="daily" style={{ width: 200 }}>
+            <Option value="realtime">Real-time</Option>
+            <Option value="hourly">Hourly</Option>
+            <Option value="daily">Daily</Option>
+            <Option value="weekly">Weekly</Option>
+          </Select>
+        </Form.Item>
+      </Card>
+    </Space>
+  );
+
+  const renderLanguageSettings = () => (
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+      <Card title="Language & Region" bordered={false}>
+        <Form layout="vertical" initialValues={userPreferences}>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <Form.Item label="Language" name="language">
+                <Select>
+                  <Option value="en">English</Option>
+                  <Option value="es">Español</Option>
+                  <Option value="fr">Français</Option>
+                  <Option value="de">Deutsch</Option>
+                  <Option value="ja">日本語</Option>
+                  <Option value="zh">中文</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Timezone" name="timezone">
+                <Select>
+                  <Option value="UTC">UTC</Option>
+                  <Option value="America/New_York">Eastern Time</Option>
+                  <Option value="America/Los_Angeles">Pacific Time</Option>
+                  <Option value="Europe/London">GMT</Option>
+                  <Option value="Asia/Tokyo">Japan Time</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Form.Item label="Date Format">
+            <Select defaultValue="MM/DD/YYYY">
+              <Option value="MM/DD/YYYY">MM/DD/YYYY</Option>
+              <Option value="DD/MM/YYYY">DD/MM/YYYY</Option>
+              <Option value="YYYY-MM-DD">YYYY-MM-DD</Option>
+            </Select>
+          </Form.Item>
+          
+          <Form.Item label="Currency">
+            <Select defaultValue="USD">
+              <Option value="USD">USD ($)</Option>
+              <Option value="EUR">EUR (€)</Option>
+              <Option value="GBP">GBP (£)</Option>
+              <Option value="JPY">JPY (¥)</Option>
+              <Option value="INR">INR (₹)</Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Card>
+    </Space>
+  );
+
+  const renderSecuritySettings = () => (
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+      <Card title="Security Preferences" bordered={false}>
+        <Form layout="vertical">
+          <Form.Item name="twoFactorEnabled" valuePropName="checked">
+            <Space>
+              <Switch />
+              <div>
+                <Text strong>Two-Factor Authentication</Text>
+                <br />
+                <Text type="secondary">Add an extra layer of security</Text>
+              </div>
+            </Space>
+          </Form.Item>
+          
+          <Form.Item name="sessionTimeout" valuePropName="checked">
+            <Space>
+              <Switch />
+              <div>
+                <Text strong>Auto-logout</Text>
+                <br />
+                <Text type="secondary">Automatically sign out after inactivity</Text>
+              </div>
+            </Space>
+          </Form.Item>
+          
+          <Divider />
+          
+          <Title level={5}>Change Password</Title>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <Form.Item label="Current Password">
+                <Input.Password prefix={<LockOutlined />} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="New Password">
+                <Input.Password prefix={<LockOutlined />} />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Form.Item>
+            <Button type="primary" icon={<LockOutlined />}>
+              Update Password
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
+    </Space>
+  );
+
+  const renderAccountSettings = () => (
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+      <Card title="Account Information" bordered={false}>
+        <Form layout="vertical">
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <Form.Item label="Display Name">
+                <Input prefix={<UserOutlined />} defaultValue="John Doe" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Email Address">
+                <Input prefix={<MailOutlined />} defaultValue="john@example.com" />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Form.Item label="Bio">
+            <Input.TextArea rows={3} placeholder="Tell us about yourself..." />
+          </Form.Item>
+          
+          <Form.Item>
+            <Space>
+              <Button type="primary">Save Changes</Button>
+              <Button>Cancel</Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Card>
+      
+      <Card title="Danger Zone" bordered={false}>
+        <Alert
+          message="Account Deletion"
+          description="Once you delete your account, there is no going back. Please be certain."
+          type="warning"
+          showIcon
+          style={{ marginBottom: token.margin }}
+        />
+        <Button danger>Delete Account</Button>
+      </Card>
+    </Space>
+  );
+
+  const renderBackupSettings = () => (
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+      <Card title="Backup & Sync" bordered={false}>
+        <Form layout="vertical" initialValues={userPreferences}>
+          <Form.Item name="autoBackup" valuePropName="checked">
+            <Space>
+              <Switch />
+              <div>
+                <Text strong>Automatic Backup</Text>
+                <br />
+                <Text type="secondary">Automatically backup your data</Text>
+              </div>
+            </Space>
+          </Form.Item>
+          
+          <Form.Item label="Backup Frequency" name="backupFrequency">
+            <Select style={{ width: 200 }}>
+              <Option value="daily">Daily</Option>
+              <Option value="weekly">Weekly</Option>
+              <Option value="monthly">Monthly</Option>
+            </Select>
+          </Form.Item>
+          
+          <Divider />
+          
+          <Title level={5}>Manual Backup</Title>
+          <Paragraph type="secondary">
+            Create a backup of all your inventory data, settings, and preferences.
+          </Paragraph>
+          
+          <Space>
+            <Button type="primary" icon={<CloudUploadOutlined />}>
+              Create Backup
+            </Button>
+            <Button icon={<CloudUploadOutlined />}>
+              Download Backup
+            </Button>
+          </Space>
+        </Form>
+      </Card>
+    </Space>
+  );
+
+  const renderAboutSettings = () => (
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+      <Card title="About InventoryPro" bordered={false}>
+        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+          <div style={{ textAlign: "center" }}>
+            <Avatar size={64} style={{ backgroundColor: token.colorPrimary }}>
+              IP
+            </Avatar>
+            <Title level={3} style={{ marginTop: token.marginMD }}>
+              InventoryPro
+            </Title>
+            <Text type="secondary">Version 2.1.0</Text>
+          </div>
+          
+          <Divider />
+          
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <Text strong>Release Date:</Text>
+              <br />
+              <Text type="secondary">December 2024</Text>
+            </Col>
+            <Col xs={24} md={12}>
+              <Text strong>License:</Text>
+              <br />
+              <Text type="secondary">MIT License</Text>
+            </Col>
+          </Row>
+          
+          <Paragraph>
+            InventoryPro is a modern inventory management system designed to help 
+            businesses track, manage, and optimize their inventory efficiently.
+          </Paragraph>
+          
+          <Space wrap>
+            <Button type="link">Privacy Policy</Button>
+            <Button type="link">Terms of Service</Button>
+            <Button type="link">Support</Button>
+            <Button type="link">Documentation</Button>
+          </Space>
+        </Space>
+      </Card>
+    </Space>
+  );
 
   const renderActiveTab = () => {
     switch (activeTab) {
       case "appearance":
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              Theme Preferences
-            </Typography>
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body1">Current Theme</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Customize the look and feel of the application
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6} sx={{ textAlign: "right" }}>
-                    <ThemeSwitcherDropdown />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader title="Advanced Appearance Settings" />
-              <CardContent>
-                <FormControlLabel
-                  control={<Switch checked={true} />}
-                  label="Enable animations"
-                  sx={{ mb: 2 }}
-                />
-                <FormControlLabel
-                  control={<Switch checked={false} />}
-                  label="Compact mode"
-                />
-              </CardContent>
-            </Card>
-          </Box>
-        );
+        return renderAppearanceSettings();
       case "notifications":
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              Notification Settings
-            </Typography>
-            <Card sx={{ mb: 3 }}>
-              <CardHeader title="Email Notifications" />
-              <CardContent>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={notificationsEnabled}
-                      onChange={(e) =>
-                        setNotificationsEnabled(e.target.checked)
-                      }
-                    />
-                  }
-                  label="Enable email notifications"
-                  sx={{ mb: 2 }}
-                />
-                {notificationsEnabled && (
-                  <Box sx={{ pl: 4 }}>
-                    <FormControlLabel
-                      control={<Switch checked={true} />}
-                      label="Low inventory alerts"
-                      sx={{ mb: 1 }}
-                    />
-                    <FormControlLabel
-                      control={<Switch checked={true} />}
-                      label="Monthly reports"
-                      sx={{ mb: 1 }}
-                    />
-                    <FormControlLabel
-                      control={<Switch checked={false} />}
-                      label="Promotional offers"
-                    />
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Box>
-        );
+        return renderNotificationSettings();
+      case "language":
+        return renderLanguageSettings();
       case "security":
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              Security Settings
-            </Typography>
-            <Card sx={{ mb: 3 }}>
-              <CardHeader title="Password" avatar={<Lock />} />
-              <CardContent>
-                <Button variant="contained" sx={{ mb: 2 }}>
-                  Change Password
-                </Button>
-                <Typography variant="body2" color="text.secondary">
-                  Last changed: 3 months ago
-                </Typography>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader
-                title="Two-Factor Authentication"
-                avatar={<Security />}
-              />
-              <CardContent>
-                <FormControlLabel
-                  control={<Switch checked={false} />}
-                  label="Enable two-factor authentication"
-                  sx={{ mb: 2 }}
-                />
-                <Typography variant="body2" color="text.secondary">
-                  Add an extra layer of security to your account
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
-        );
+        return renderSecuritySettings();
+      case "account":
+        return renderAccountSettings();
       case "backup":
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              Backup Settings
-            </Typography>
-            <Card sx={{ mb: 3 }}>
-              <CardHeader title="Automatic Backups" />
-              <CardContent>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={autoBackupEnabled}
-                      onChange={(e) => setAutoBackupEnabled(e.target.checked)}
-                    />
-                  }
-                  label="Enable automatic backups"
-                  sx={{ mb: 2 }}
-                />
-                {autoBackupEnabled && (
-                  <Box sx={{ pl: 4 }}>
-                    <Typography variant="body1" sx={{ mb: 1 }}>
-                      Backup Frequency
-                    </Typography>
-                    <TextField
-                      select
-                      fullWidth
-                      value={backupFrequency}
-                      onChange={(e) => setBackupFrequency(e.target.value)}
-                      SelectProps={{
-                        native: true,
-                      }}
-                    >
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </TextField>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader title="Manual Backup" />
-              <CardContent>
-                <Button variant="outlined" sx={{ mr: 2 }}>
-                  Create Backup Now
-                </Button>
-                <Button variant="text">Restore from Backup</Button>
-              </CardContent>
-            </Card>
-          </Box>
-        );
+        return renderBackupSettings();
+      case "about":
+        return renderAboutSettings();
       default:
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              {settingsTabs.find((tab) => tab.id === activeTab)?.label} Settings
-            </Typography>
-            <Card>
-              <CardContent>
-                <Typography>
-                  Settings for this section will be available soon.
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
-        );
+        return renderAppearanceSettings();
     }
   };
 
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "center", 
+        minHeight: "100vh" 
+      }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
-    <Box
-      sx={{
-        display: "flex",
-        minHeight: "100vh",
-        bgcolor: "background.default",
-        color: "text.primary",
-      }}
-    >
-      <Paper
-        elevation={0}
-        sx={{
-          width: 280,
-          height: "100vh",
-          position: "sticky",
-          top: 0,
-          borderRight: `1px solid ${theme.palette.divider}`,
-          bgcolor: "background.paper",
+    <Layout style={{ minHeight: "100vh" }}>
+      <Sider
+        width={280}
+        style={{
+          background: token.colorBgContainer,
+          borderRight: `1px solid ${token.colorBorderSecondary}`,
         }}
       >
-        <Box
-          sx={{
-            p: 3,
+        {/* Header */}
+        <div
+          style={{
+            padding: token.paddingLG,
+            borderBottom: `1px solid ${token.colorBorderSecondary}`,
             display: "flex",
             alignItems: "center",
-            gap: 2,
-            borderBottom: `1px solid ${theme.palette.divider}`,
+            gap: token.marginMD,
           }}
         >
-          <Avatar sx={{ bgcolor: "primary.main" }}>IP</Avatar>
-          <Typography variant="h6">InventoryPro</Typography>
-        </Box>
-        <List>
-          {settingsTabs.map((tab) => (
-            <ListItem
-              button
-              key={tab.id}
-              selected={activeTab === tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              sx={{
-                "&.Mui-selected": {
-                  backgroundColor: theme.palette.action.selected,
-                  borderRight: `3px solid ${theme.palette.primary.main}`,
-                },
-                "&.Mui-selected:hover": {
-                  backgroundColor: theme.palette.action.selected,
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: "inherit" }}>{tab.icon}</ListItemIcon>
-              <ListItemText primary={tab.label} />
-            </ListItem>
-          ))}
-        </List>
-      </Paper>
+          <Avatar style={{ backgroundColor: token.colorPrimary }}>
+            <SettingOutlined />
+          </Avatar>
+          <Title level={4} style={{ margin: 0 }}>
+            Settings
+          </Title>
+        </div>
 
-      <Box
-        sx={{
-          flex: 1,
+        {/* Menu */}
+        <Menu
+          mode="inline"
+          selectedKeys={[activeTab]}
+          items={menuItems}
+          onClick={({ key }) => setActiveTab(key)}
+          style={{
+            border: "none",
+            height: "calc(100vh - 80px)",
+          }}
+        />
+      </Sider>
+
+      <Content
+        style={{
+          padding: token.paddingLG,
+          background: token.colorBgLayout,
           overflowY: "auto",
-          p: 4,
-          maxWidth: "calc(100% - 280px)",
         }}
       >
-        <Typography variant="h4" sx={{ mb: 3 }}>
-          {settingsTabs.find((tab) => tab.id === activeTab)?.label} Settings
-        </Typography>
+        <div style={{ marginBottom: token.marginLG }}>
+          <Title level={2}>{getCurrentTabTitle()}</Title>
+          <Text type="secondary">
+            Manage your {getCurrentTabTitle().toLowerCase()} preferences and settings
+          </Text>
+        </div>
+        
         {renderActiveTab()}
-      </Box>
-    </Box>
+      </Content>
+    </Layout>
   );
 };
 
