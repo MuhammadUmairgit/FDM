@@ -6,6 +6,7 @@ import {
   Select,
   DatePicker,
   Button,
+  Divider,
   Typography,
   Spin,
   message,
@@ -14,33 +15,15 @@ import {
 import { LeftOutlined, ReloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import ReactApexChart from "react-apexcharts";
+import { useQueryGetDriverLookup } from "src/queries/driver.queries";
+import { useQueryGetTachoDriverActivity } from "src/queries/tacho.queries";
 
 dayjs.extend(isBetween);
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Text, Title } = Typography;
-
-// Mock query hooks - replace with actual implementations
-const useQueryGetDriverLookup = () => ({
-  data: null,
-  isLoading: false,
-});
-
-const useQueryGetTachoDriverActivity = (params, enabled) => ({
-  data: null,
-  isLoading: false,
-});
 
 const BASE_DRIVER_STATES = {
   DRIVING: { name: "Driving (within limit)", color: "#52c41a" },
@@ -128,37 +111,120 @@ const DriverActivities = ({
 
   const DRIVER_STATE_KEYS = Object.keys(DRIVER_STATES);
 
-  // Fixed: Improved chart data generation with fallback values for day labels
-  const chartData = useMemo(() => {
+  // Fixed: Improved y-axis categories generation with fallback values
+  const yCategories = useMemo(() => {
     return (activityData?.days || []).map((day, index) => {
-      // Use dayOfTheWeek if available, otherwise create a fallback label
-      let dayLabel = "";
+      // Use dayOfTheWeek if available and not empty, otherwise create a fallback label
       if (day.dayOfTheWeek && day.dayOfTheWeek.trim() !== "") {
-        dayLabel = day.dayOfTheWeek;
-      } else if (day.date) {
-        dayLabel = dayjs(day.date).format("ddd MMM D");
-      } else {
-        dayLabel = `Day ${index + 1}`;
+        return day.dayOfTheWeek;
       }
+      
+      // Fallback: use date if available
+      if (day.date) {
+        return dayjs(day.date).format("ddd MMM D");
+      }
+      
+      // Last fallback: use index-based day
+      return `Day ${index + 1}`;
+    });
+  }, [activityData]);
 
-      const dayData = { day: dayLabel };
-
-      // Calculate hours for each state
-      DRIVER_STATE_KEYS.forEach((stateKey) => {
+  const chartSeries = useMemo(() => {
+    return DRIVER_STATE_KEYS.map((stateKey) => ({
+      name: DRIVER_STATES[stateKey].name,
+      data: (activityData?.days || []).map((day) => {
         const minutesForState = (day.activities || [])
           .filter((a) => a.workingState === stateKey)
           .reduce((sum, a) => sum + getMinutesFromDuration(a.duration), 0);
-        dayData[stateKey] = Number((minutesForState / 60).toFixed(2));
-      });
+        return minutesForState / 60;
+      }),
+    }));
+  }, [DRIVER_STATE_KEYS, DRIVER_STATES, activityData]);
 
-      return dayData;
-    });
-  }, [activityData, DRIVER_STATE_KEYS]);
+  const barHeightPx = (420 * 0.8) / (activityData?.days?.length || 1);
 
   const totalDays =
     dateRange && dateRange[0] && dateRange[1]
       ? dateRange[1].diff(dateRange[0], "days") + 1
       : 1;
+
+  const totalHours = totalDays * 8;
+
+  const chartOptions = useMemo(
+    () => ({
+      chart: {
+        type: "bar",
+        stacked: true,
+        height: 420,
+        toolbar: { show: false },
+        animations: { enabled: true },
+      },
+      plotOptions: {
+        bar: {
+          horizontal: true,
+          barHeight: "80%",
+          borderRadius: 6,
+        },
+      },
+      xaxis: {
+        min: 0,
+        max: totalHours,
+        tickAmount: totalDays,
+        title: { text: "Time (hours)" },
+        labels: {
+          formatter: (val) => `${val}:00`,
+          style: { fontWeight: 600 },
+        },
+      },
+      yaxis: {
+        categories: yCategories,
+        title: { text: "Day" },
+        labels: { 
+          style: { fontWeight: 600 },
+          // Fixed: Ensure labels are visible and properly formatted
+          maxWidth: 120,
+          offsetX: -10,
+        },
+        // Fixed: Ensure y-axis is visible and properly configured
+        axisBorder: {
+          show: true,
+          color: '#e0e0e0'
+        },
+        axisTicks: {
+          show: true,
+          color: '#e0e0e0'
+        }
+      },
+      colors: DRIVER_STATE_KEYS.map((k) => DRIVER_STATES[k].color),
+      tooltip: {
+        shared: false,
+        intersect: true,
+        followCursor: true,
+        custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+          const seriesName = w.globals.seriesNames[seriesIndex];
+          const value = series[seriesIndex][dataPointIndex];
+          if (value === 0) return "";
+          return `
+        <div style="padding:8px;background:white;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,0.15)">
+          <div style="font-weight:600;color:black">${seriesName}: ${value.toFixed(
+            2
+          )}h</div>
+        </div>`;
+        },
+      },
+      legend: { show: false },
+      dataLabels: { enabled: false },
+      grid: { 
+        xaxis: { lines: { show: false } },
+        // Fixed: Ensure grid doesn't interfere with y-axis labels
+        padding: {
+          left: 10,
+          right: 10
+        }
+      },
+    }),
+    [totalHours, yCategories, DRIVER_STATE_KEYS, DRIVER_STATES, totalDays]
+  );
 
   const rangePresets = [
     { label: "Last 7 Days", value: [dayjs().subtract(6, "days"), dayjs()] },
@@ -198,6 +264,7 @@ const DriverActivities = ({
 
   const handleReset = () => {
     setDateRange([dayjs().subtract(6, "days"), dayjs()]);
+    // if (!propDriverId) setDriverId(null);
     setVehicleFilter(null);
     message.success("Reset to last 7 days");
   };
@@ -260,7 +327,7 @@ const DriverActivities = ({
             value={vehicleFilter}
             onChange={setVehicleFilter}
             allowClear
-          />
+          ></Select>
         </Col>
         <Col span={12}>
           <RangePicker
@@ -323,44 +390,14 @@ const DriverActivities = ({
           }}
         >
           <div style={{ flex: 1, minWidth: 700 }}>
-            {chartData.length ? (
-              <ResponsiveContainer width="100%" height={420}>
-                <BarChart
-                  data={chartData}
-                  layout="horizontal"
-                  margin={{ top: 20, right: 30, left: 120, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    type="number" 
-                    domain={[0, totalDays * 8]}
-                    tickFormatter={(value) => `${value}h`}
-                  />
-                  <YAxis 
-                    type="category" 
-                    dataKey="day" 
-                    width={100}
-                    tick={{ fontSize: 12, fontWeight: 600 }}
-                  />
-                  <Tooltip
-                    formatter={(value, name) => [
-                      `${value.toFixed(2)}h`,
-                      DRIVER_STATES[name]?.name || name
-                    ]}
-                  />
-                  <Legend />
-                  {DRIVER_STATE_KEYS.map((stateKey) => (
-                    <Bar
-                      key={stateKey}
-                      dataKey={stateKey}
-                      stackId="activities"
-                      fill={DRIVER_STATES[stateKey].color}
-                      name={DRIVER_STATES[stateKey].name}
-                      radius={[0, 3, 3, 0]}
-                    />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
+            {activityData?.days?.length ? (
+              <ReactApexChart
+                key={activityData.days.map((d, i) => d.dayOfTheWeek || `day-${i}`).join("-")}
+                options={chartOptions}
+                series={chartSeries}
+                type="bar"
+                height={420}
+              />
             ) : (
               <Text type="secondary">
                 No data available for the selected range.
@@ -383,7 +420,7 @@ const DriverActivities = ({
                 <div
                   key={idx}
                   style={{
-                    height: 420 / (activityData.days?.length || 1),
+                    height: barHeightPx,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
@@ -403,11 +440,13 @@ const DriverActivities = ({
         </div>
       )}
 
-      <div style={{ marginTop: 24 }}>
+      {/* <Divider /> */}
+
+      <div>
         <Title level={5}>Legend</Title>
         <Row gutter={16}>
           {Object.entries(DRIVER_STATES)
-            .filter(([key]) => parseFloat(commitmentByState[key] || "0") > 0)
+            .filter(([key]) => commitmentByState[key] > 0)
             .map(([key, config]) => (
               <Col key={key} style={{ marginBottom: 8 }}>
                 <Row align="middle">
