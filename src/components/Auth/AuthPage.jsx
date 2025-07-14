@@ -1,43 +1,44 @@
 // src/components/AuthPage/AuthPage.jsx
-import  { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
   Card,
-  CardContent,
+  Form,
+  Input,
+  Button,
+  Typography,
   Divider,
-  Snackbar,
+  Space,
   Alert,
-  CircularProgress,
-  IconButton,
-  InputAdornment,
-  Zoom,
-  Paper,
+  Switch,
+  Row,
+  Col,
+  message,
+  theme,
   Avatar,
-  Collapse,
-} from "@mui/material";
+  Tooltip,
+} from "antd";
 import {
-  Email as EmailIcon,
-  Lock as LockIcon,
-  Visibility,
-  VisibilityOff,
-  Login as LoginIcon,
-  PersonAdd as PersonAddIcon,
-  AdminPanelSettings as AdminIcon,
-  Info,
-  ArrowForward,
-} from "@mui/icons-material";
+  MailOutlined,
+  LockOutlined,
+  LoginOutlined,
+  UserAddOutlined,
+  CrownOutlined,
+  InfoCircleOutlined,
+  EyeInvisibleOutlined,
+  EyeTwoTone,
+} from "@ant-design/icons";
 import { auth, db } from "../../firebase/firebaseConfig";
 import { useAuth } from "./AuthContext";
+
+const { Title, Text, Paragraph } = Typography;
+const { useToken } = theme;
 
 const ADMIN_CREDENTIALS = {
   email: "admin@inventory.com",
@@ -47,16 +48,12 @@ const ADMIN_CREDENTIALS = {
 const AuthPage = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const { token } = useToken();
+  const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
+
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
   const [showAdminHint, setShowAdminHint] = useState(false);
 
   useEffect(() => {
@@ -65,8 +62,7 @@ const AuthPage = () => {
     }
   }, [currentUser, navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (values) => {
     setLoading(true);
 
     try {
@@ -74,8 +70,8 @@ const AuthPage = () => {
         // Login logic
         const userCredential = await signInWithEmailAndPassword(
           auth,
-          email,
-          password
+          values.email,
+          values.password
         );
 
         // Check if user is admin
@@ -83,65 +79,62 @@ const AuthPage = () => {
         const userData = userDoc.data();
 
         if (userData?.role === "admin") {
-          showSnackbar("Welcome back, Admin!", "success");
+          messageApi.success("Welcome back, Admin!");
           navigate("/dashboard");
         } else {
-          showSnackbar(
-            `Welcome back, ${userData?.displayName || "User"}!`,
-            "success"
-          );
+          messageApi.success(`Welcome back, ${userData?.displayName || "User"}!`);
           navigate("/");
         }
       } else {
         // Registration logic
         const userCredential = await createUserWithEmailAndPassword(
           auth,
-          email,
-          password
+          values.email,
+          values.password
         );
 
-        // Set user data in Firestore
+        // Determine user role
+        const isAdminEmail = values.email === ADMIN_CREDENTIALS.email;
+        const role = isAdminEmail ? "admin" : "user";
+
+        // Create user document
         await setDoc(doc(db, "users", userCredential.user.uid), {
-          email: email,
-          displayName: email.split("@")[0], // Default to email prefix as name
-          role: email === ADMIN_CREDENTIALS.email ? "admin" : "user",
+          uid: userCredential.user.uid,
+          email: values.email,
+          displayName: values.email.split("@")[0],
+          role: role,
           createdAt: new Date(),
-          disabled: false,
+          categories: [],
         });
 
-        // Create a personal inventory collection for the user
-        await setDoc(doc(db, "userInventories", userCredential.user.uid), {
-          userId: userCredential.user.uid,
-          createdAt: new Date(),
-        });
-
-        showSnackbar(
-          email === ADMIN_CREDENTIALS.email
-            ? "Admin account created successfully!"
-            : "Account created successfully!",
-          "success"
-        );
-        navigate("/");
+        if (isAdminEmail) {
+          messageApi.success("Admin account created successfully!");
+          navigate("/dashboard");
+        } else {
+          messageApi.success("Account created successfully!");
+          navigate("/");
+        }
       }
     } catch (error) {
-      let errorMessage = "An error occurred";
+      console.error("Auth error:", error);
+      
+      // Handle specific Firebase errors
+      let errorMessage = "An error occurred. Please try again.";
       switch (error.code) {
         case "auth/user-not-found":
-          errorMessage = "User not found. Would you like to register instead?";
-          setIsLogin(false);
+          errorMessage = "No account found with this email.";
           break;
         case "auth/wrong-password":
-          errorMessage = "Incorrect password";
+          errorMessage = "Incorrect password.";
           break;
         case "auth/email-already-in-use":
-          errorMessage = "Email already in use. Please login instead.";
-          setIsLogin(true);
+          errorMessage = "Email is already registered.";
           break;
         case "auth/weak-password":
-          errorMessage = "Password should be at least 6 characters";
+          errorMessage = "Password should be at least 6 characters.";
           break;
         case "auth/invalid-email":
-          errorMessage = "Invalid email address";
+          errorMessage = "Invalid email address.";
           break;
         case "auth/too-many-requests":
           errorMessage = "Too many attempts. Please try again later.";
@@ -149,297 +142,239 @@ const AuthPage = () => {
         default:
           errorMessage = error.message;
       }
-      showSnackbar(errorMessage, "error");
+      
+      messageApi.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const showSnackbar = (message, severity = "success") => {
-    setSnackbar({ open: true, message, severity });
-  };
-
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
+    form.resetFields();
     setShowAdminHint(false);
   };
 
-  const isAdminEmail = email === ADMIN_CREDENTIALS.email;
+  const handleEmailChange = (e) => {
+    const email = e.target.value;
+    setShowAdminHint(!isLogin && email === ADMIN_CREDENTIALS.email);
+  };
+
+  const containerStyle = {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "linear-gradient(135deg, #6E45E2 0%, #88D3CE 100%)",
+    padding: token.padding,
+  };
+
+  const cardStyle = {
+    width: "100%",
+    maxWidth: 400,
+    borderRadius: token.borderRadiusLG,
+    boxShadow: token.boxShadowTertiary,
+    border: "none",
+  };
+
+  const avatarStyle = {
+    backgroundColor: token.colorPrimary,
+    marginBottom: token.marginLG,
+  };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-        p: 2,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      {/* Animated background elements */}
-      {/* <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.1 }}
-        transition={{ duration: 2 }}
-        style={{
-          position: "absolute",
-          top: -100,
-          left: -100,
-        }}
-      >
-        <AdminPanelSettings sx={{ fontSize: 300, color: "primary.main" }} />
-      </motion.div> */}
-
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card
-          sx={{
-            width: "100%",
-            maxWidth: 450,
-            boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-            position: "relative",
-            zIndex: 1,
-            overflow: "visible",
-          }}
+    <>
+      {contextHolder}
+      <div style={containerStyle}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <CardContent sx={{ p: 4 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  mb: 3,
-                }}
-              >
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Avatar
-                    sx={{
-                      bgcolor: "primary.main",
-                      width: 60,
-                      height: 60,
-                      mb: 2,
-                    }}
-                  >
-                    {isLogin ? (
-                      <LoginIcon fontSize="large" />
-                    ) : (
-                      <PersonAddIcon fontSize="large" />
-                    )}
-                  </Avatar>
-                </motion.div>
-
-                <Typography
-                  variant="h4"
-                  component="h1"
-                  sx={{
-                    fontWeight: 700,
-                    textAlign: "center",
-                    color: "primary.main",
-                  }}
-                >
-                  {isLogin ? "Welcome Back" : "Create Account"}
-                  {isAdminEmail && (
-                    <AdminIcon
-                      color="primary"
-                      sx={{ ml: 1, verticalAlign: "middle" }}
-                    />
-                  )}
-                </Typography>
-
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 1 }}
-                >
-                  {isLogin
-                    ? "Sign in to continue to your account"
-                    : "Get started with your new account"}
-                </Typography>
-              </Box>
-
-              <form onSubmit={handleSubmit}>
-                <motion.div
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
-                >
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (e.target.value === ADMIN_CREDENTIALS.email) {
-                        setShowAdminHint(true);
-                      } else {
-                        setShowAdminHint(false);
-                      }
-                    }}
-                    margin="normal"
-                    required
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <EmailIcon color="primary" />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{ mb: 2 }}
+          <Card style={cardStyle}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <Space direction="vertical" size="large" style={{ width: "100%", textAlign: "center" }}>
+                {/* Header */}
+                <div>
+                  <Avatar 
+                    size={64} 
+                    style={avatarStyle}
+                    icon={isLogin ? <LoginOutlined /> : <UserAddOutlined />}
                   />
-                </motion.div>
-
-                <Collapse in={showAdminHint && !isLogin}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2,
-                      mb: 2,
-                      bgcolor: "primary.light",
-                      color: "primary.contrastText",
-                      borderRadius: 2,
-                    }}
-                  >
-                    <Box display="flex" alignItems="center">
-                      <Info sx={{ mr: 1 }} />
-                      <Typography variant="body2">
-                        Registering with admin email will create an admin
-                        account
-                      </Typography>
-                    </Box>
-                  </Paper>
-                </Collapse>
-
-                <motion.div
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.5 }}
-                >
-                  <TextField
-                    fullWidth
-                    label="Password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    margin="normal"
-                    required
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LockIcon color="primary" />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{ mb: 3 }}
-                  />
-                </motion.div>
-
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.5, duration: 0.5 }}
-                >
-                  <Button
-                    fullWidth
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    disabled={loading}
-                    endIcon={
-                      loading ? (
-                        <CircularProgress size={20} color="inherit" />
-                      ) : (
-                        <ArrowForward />
-                      )
+                  <Title level={2} style={{ margin: 0, color: token.colorText }}>
+                    {isLogin ? "Welcome Back" : "Create Account"}
+                  </Title>
+                  <Text type="secondary">
+                    {isLogin 
+                      ? "Sign in to your inventory account" 
+                      : "Join our inventory management system"
                     }
-                    sx={{
-                      py: 1.5,
-                      fontSize: "1rem",
-                      fontWeight: 600,
-                      borderRadius: 2,
-                    }}
+                  </Text>
+                </div>
+
+                {/* Admin Hint */}
+                <AnimatePresence>
+                  {showAdminHint && !isLogin && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Alert
+                        message="Admin Account"
+                        description="Registering with admin email will create an admin account with full privileges."
+                        type="info"
+                        icon={<CrownOutlined />}
+                        showIcon
+                        style={{ textAlign: "left" }}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Form */}
+                <Form
+                  form={form}
+                  layout="vertical"
+                  onFinish={handleSubmit}
+                  requiredMark={false}
+                  size="large"
+                  style={{ width: "100%" }}
+                >
+                  <motion.div
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.5 }}
                   >
-                    {isLogin ? "Sign In" : "Create Account"}
-                  </Button>
+                    <Form.Item
+                      name="email"
+                      rules={[
+                        { required: true, message: "Please enter your email!" },
+                        { type: "email", message: "Please enter a valid email!" }
+                      ]}
+                    >
+                      <Input
+                        prefix={<MailOutlined style={{ color: token.colorTextSecondary }} />}
+                        placeholder="Email address"
+                        onChange={handleEmailChange}
+                        style={{ borderRadius: token.borderRadius }}
+                      />
+                    </Form.Item>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.4, duration: 0.5 }}
+                  >
+                    <Form.Item
+                      name="password"
+                      rules={[
+                        { required: true, message: "Please enter your password!" },
+                        isLogin ? {} : { min: 6, message: "Password must be at least 6 characters!" }
+                      ]}
+                    >
+                      <Input.Password
+                        prefix={<LockOutlined style={{ color: token.colorTextSecondary }} />}
+                        placeholder="Password"
+                        iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+                        style={{ borderRadius: token.borderRadius }}
+                      />
+                    </Form.Item>
+                  </motion.div>
+
+                  {/* Admin Demo Credentials */}
+                  {isLogin && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5, duration: 0.5 }}
+                    >
+                      <Alert
+                        message="Demo Credentials"
+                        description={
+                          <div>
+                            <Paragraph style={{ margin: 0, fontSize: token.fontSizeSM }}>
+                              <strong>Admin:</strong> {ADMIN_CREDENTIALS.email} / {ADMIN_CREDENTIALS.password}
+                            </Paragraph>
+                          </div>
+                        }
+                        type="info"
+                        icon={<InfoCircleOutlined />}
+                        showIcon
+                        style={{ marginBottom: token.marginMD, textAlign: "left" }}
+                      />
+                    </motion.div>
+                  )}
+
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 0.5 }}
+                  >
+                    <Form.Item style={{ marginBottom: 0 }}>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={loading}
+                        block
+                        size="large"
+                        icon={!loading && (isLogin ? <LoginOutlined /> : <UserAddOutlined />)}
+                        style={{
+                          borderRadius: token.borderRadius,
+                          height: 48,
+                          fontSize: token.fontSizeLG,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {loading 
+                          ? (isLogin ? "Signing In..." : "Creating Account...") 
+                          : (isLogin ? "Sign In" : "Create Account")
+                        }
+                      </Button>
+                    </Form.Item>
+                  </motion.div>
+                </Form>
+
+                {/* Toggle Auth Mode */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7, duration: 0.5 }}
+                >
+                  <Divider>
+                    <Text type="secondary">OR</Text>
+                  </Divider>
+                  
+                  <Space direction="vertical" align="center">
+                    <Text type="secondary">
+                      {isLogin ? "Don't have an account?" : "Already have an account?"}
+                    </Text>
+                    <Button 
+                      type="link" 
+                      onClick={toggleAuthMode}
+                      style={{ 
+                        fontWeight: 600,
+                        fontSize: token.fontSize,
+                        padding: 0,
+                        height: "auto",
+                      }}
+                    >
+                      {isLogin ? "Create an account" : "Sign in instead"}
+                    </Button>
+                  </Space>
                 </motion.div>
-              </form>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6, duration: 0.5 }}
-              >
-                <Divider sx={{ my: 3 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    OR
-                  </Typography>
-                </Divider>
-                <Box textAlign="center">
-                  <Typography
-                    variant="body2"
-                    sx={{ mb: 1, color: "text.secondary" }}
-                  >
-                    {isLogin
-                      ? "Don't have an account?"
-                      : "Already have an account?"}
-                  </Typography>
-                  <Button
-                    onClick={toggleAuthMode}
-                    sx={{
-                      fontWeight: 600,
-                      textTransform: "none",
-                    }}
-                  >
-                    {isLogin ? "Create an account" : "Sign in instead"}
-                  </Button>
-                </Box>
-              </motion.div>
-            </CardContent>
-          </motion.div>
-        </Card>
-      </motion.div>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Zoom in={snackbar.open}>
-          <Alert
-            severity={snackbar.severity}
-            onClose={() => setSnackbar({ ...snackbar, open: false })}
-            sx={{ width: "100%" }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Zoom>
-      </Snackbar>
-    </Box>
+              </Space>
+            </motion.div>
+          </Card>
+        </motion.div>
+      </div>
+    </>
   );
 };
 
