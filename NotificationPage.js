@@ -72,25 +72,46 @@ const NotificationPage = () => {
   let { id: rawUserId } = getUserDetails() || {};
   const userId = getCustomNotificationKey(role, rawUserId, selectedClientAuth);
 
-  // Fix: Ensure proper array handling for notification IDs
+  // Fix: Handle multiple user IDs separately
   const getNotificationsFromStorage = () => {
     try {
       const notificationsStore = JSON.parse(localStorage.getItem("tpms_notifications")) || {};
-      const userNotifications = notificationsStore[userId]?.notificationIds;
       
-      // Ensure we always return an array
-      if (Array.isArray(userNotifications)) {
-        return userNotifications;
-      } else if (typeof userNotifications === 'string') {
-        // Handle corrupted data where array might be stored as string
-        try {
-          const parsed = JSON.parse(userNotifications);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
+      // If userId is an array like [17,444], handle each ID separately
+      if (Array.isArray(userId)) {
+        const allMarkedNotifications = [];
+        userId.forEach(id => {
+          const userNotifications = notificationsStore[id]?.notificationIds;
+          if (Array.isArray(userNotifications)) {
+            allMarkedNotifications.push(...userNotifications);
+          } else if (typeof userNotifications === 'string') {
+            try {
+              const parsed = JSON.parse(userNotifications);
+              if (Array.isArray(parsed)) {
+                allMarkedNotifications.push(...parsed);
+              }
+            } catch {
+              // Ignore corrupted data
+            }
+          }
+        });
+        return allMarkedNotifications;
+      } else {
+        // Single user ID handling
+        const userNotifications = notificationsStore[userId]?.notificationIds;
+        
+        if (Array.isArray(userNotifications)) {
+          return userNotifications;
+        } else if (typeof userNotifications === 'string') {
+          try {
+            const parsed = JSON.parse(userNotifications);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            return [];
+          }
         }
+        return [];
       }
-      return [];
     } catch {
       return [];
     }
@@ -185,56 +206,116 @@ const NotificationPage = () => {
           localStorage.getItem(latestKey) || "{}"
         );
 
-        const prevCustomersIds = prevAllCustomers[customerId] || [];
+        let hasNewNotifications = false;
 
-        const newNotificationIds = currentNotificationIds.filter(
-          (id) => !prevCustomersIds.includes(id)
-        );
+        if (Array.isArray(userId)) {
+          // Check each user ID separately for new notifications
+          userId.forEach(userIdItem => {
+            const prevCustomersIds = prevAllCustomers[userIdItem] || [];
+            const newNotificationIds = currentNotificationIds.filter(
+              (id) => !prevCustomersIds.includes(id)
+            );
+            if (newNotificationIds.length > 0) {
+              hasNewNotifications = true;
+            }
+          });
+        } else {
+          const prevCustomersIds = prevAllCustomers[customerId] || [];
+          const newNotificationIds = currentNotificationIds.filter(
+            (id) => !prevCustomersIds.includes(id)
+          );
+          if (newNotificationIds.length > 0) {
+            hasNewNotifications = true;
+          }
+        }
 
-        if (newNotificationIds.length > 0) {
+        if (hasNewNotifications) {
           notificationSound.play().catch((err) => {
             console.warn("Notification sound failed:", err);
           });
         }
 
         // Save the updated notification list for this customer
-        localStorage.setItem(
-          latestKey,
-          JSON.stringify({
-            ...prevAllCustomers,
-            [customerId]: currentNotificationIds,
-          })
-        );
+        // Handle multiple user IDs separately for latest notifications
+        if (Array.isArray(userId)) {
+          const updatedLatestNotifications = { ...prevAllCustomers };
+          userId.forEach(userIdItem => {
+            updatedLatestNotifications[userIdItem] = currentNotificationIds;
+          });
+          localStorage.setItem(latestKey, JSON.stringify(updatedLatestNotifications));
+        } else {
+          localStorage.setItem(
+            latestKey,
+            JSON.stringify({
+              ...prevAllCustomers,
+              [customerId]: currentNotificationIds,
+            })
+          );
+        }
 
         // ✅ STEP 2: Your existing logic — clean old entries and manage marked notifications
         let storedData = JSON.parse(localStorage.getItem(storageKey)) || {};
 
+        // Clean old entries (different day) - handle both single IDs and arrays
         for (const [id, entry] of Object.entries(storedData)) {
-          const entryDate = new Date(entry.time).toDateString();
-          if (entryDate !== today) {
+          if (entry && entry.time) {
+            const entryDate = new Date(entry.time).toDateString();
+            if (entryDate !== today) {
+              delete storedData[id];
+            }
+          } else {
+            // Remove entries without proper structure
             delete storedData[id];
           }
         }
 
-        // Fix: Ensure proper array handling
-        const updatedMarkedNotificationsData = storedData[userId]?.notificationIds || [];
+        // Fix: Handle multiple user IDs separately
+        let allUpdatedMarkedNotifications = [];
         
-        // Ensure it's an array
-        const safeMarkedNotifications = Array.isArray(updatedMarkedNotificationsData) 
-          ? updatedMarkedNotificationsData 
-          : [];
+        if (Array.isArray(userId)) {
+          // Handle each user ID separately
+          userId.forEach(id => {
+            const updatedMarkedNotificationsData = storedData[id]?.notificationIds || [];
+            
+            // Ensure it's an array
+            const safeMarkedNotifications = Array.isArray(updatedMarkedNotificationsData) 
+              ? updatedMarkedNotificationsData 
+              : [];
 
-        const updatedMarkedNotifications = safeMarkedNotifications.filter((id) =>
-          data?.response.some((notification) => notification.id === id)
-        );
+            const updatedMarkedNotifications = safeMarkedNotifications.filter((notificationId) =>
+              data?.response.some((notification) => notification.id === notificationId)
+            );
 
-        storedData[userId] = {
-          notificationIds: updatedMarkedNotifications, // Ensure this is always an array
-          time: new Date().toISOString(),
-        };
+            // Store each user ID separately
+            storedData[id] = {
+              notificationIds: updatedMarkedNotifications,
+              time: new Date().toISOString(),
+            };
+            
+            allUpdatedMarkedNotifications.push(...updatedMarkedNotifications);
+          });
+        } else {
+          // Single user ID handling
+          const updatedMarkedNotificationsData = storedData[userId]?.notificationIds || [];
+          
+          const safeMarkedNotifications = Array.isArray(updatedMarkedNotificationsData) 
+            ? updatedMarkedNotificationsData 
+            : [];
+
+          const updatedMarkedNotifications = safeMarkedNotifications.filter((notificationId) =>
+            data?.response.some((notification) => notification.id === notificationId)
+          );
+
+          storedData[userId] = {
+            notificationIds: updatedMarkedNotifications,
+            time: new Date().toISOString(),
+          };
+          
+          allUpdatedMarkedNotifications = updatedMarkedNotifications;
+        }
 
         localStorage.setItem(storageKey, JSON.stringify(storedData));
-        setMarkedNotifications(updatedMarkedNotifications);
+        setMarkedNotifications(allUpdatedMarkedNotifications);
       },
     }
   );
@@ -306,13 +387,27 @@ const NotificationPage = () => {
       const updatedMarkedNotifications = [...markedNotifications, id];
       setMarkedNotifications(updatedMarkedNotifications);
 
-      // Fix: Ensure proper array storage
+      // Fix: Handle multiple user IDs separately
       const currentStore = JSON.parse(localStorage.getItem("tpms_notifications")) || {};
 
-      currentStore[userId] = {
-        notificationIds: updatedMarkedNotifications, // This is already an array
-        time: new Date().toISOString(),
-      };
+      if (Array.isArray(userId)) {
+        // Update each user ID separately
+        userId.forEach(userIdItem => {
+          const existingNotifications = currentStore[userIdItem]?.notificationIds || [];
+          if (!existingNotifications.includes(id)) {
+            currentStore[userIdItem] = {
+              notificationIds: [...existingNotifications, id],
+              time: new Date().toISOString(),
+            };
+          }
+        });
+      } else {
+        // Single user ID handling
+        currentStore[userId] = {
+          notificationIds: updatedMarkedNotifications,
+          time: new Date().toISOString(),
+        };
+      }
 
       if (userId) {
         localStorage.setItem("tpms_notifications", JSON.stringify(currentStore));
@@ -326,12 +421,24 @@ const NotificationPage = () => {
 
     setMarkedNotifications(allNotificationIds);
 
-    // Fix: Ensure proper array storage
+    // Fix: Handle multiple user IDs separately
     const currentStore = JSON.parse(localStorage.getItem("tpms_notifications")) || {};
-    currentStore[userId] = {
-      notificationIds: allNotificationIds, // This is already an array
-      time: new Date().toISOString(),
-    };
+    
+    if (Array.isArray(userId)) {
+      // Update each user ID separately
+      userId.forEach(userIdItem => {
+        currentStore[userIdItem] = {
+          notificationIds: allNotificationIds,
+          time: new Date().toISOString(),
+        };
+      });
+    } else {
+      // Single user ID handling
+      currentStore[userId] = {
+        notificationIds: allNotificationIds,
+        time: new Date().toISOString(),
+      };
+    }
 
     if (userId) {
       localStorage.setItem("tpms_notifications", JSON.stringify(currentStore));
